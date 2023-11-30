@@ -1,0 +1,31 @@
+{
+  "name": "generate-fixed",
+  "version": "1.0.0",
+  "description": "This project was bootstrapped with Fastify-CLI.",
+  "main": "app.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "tap \"test/**/*.test.js\"",
+    "start": "fastify start -l info app.js",
+    "dev": "fastify start -w -l info -P app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/autoload": "^5.8.0",
+    "@fastify/cors": "^8.4.1",
+    "@fastify/env": "^4.3.0",
+    "@fastify/sensible": "^5.5.0",
+    "@fastify/mysql": "^4.2.0",
+    "fastify": "^4.24.3",
+    "fastify-cli": "^5.8.0",
+    "fastify-plugin": "^4.5.1",
+    "fastify-auth0-verify": "^1.2.1"
+  },
+  "devDependencies": {
+    "tap": "^18.5.2"
+  }
+}
