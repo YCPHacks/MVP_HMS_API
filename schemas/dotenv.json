@@ -1,0 +1,24 @@
+{
+    "type": "object",
+    "$id": "schema:dotenv",
+    "required": ["MYSQL_HARDWARE_DATABASE_URL", "AUTH0_DOMAIN", "AUTH0_CLIENT_SECRET"],
+    "properties": {
+        "NODE_ENV": {
+          "type": "string",
+          "default": "development"
+        },
+        "PORT": {
+          "type": "integer",
+          "default": 3000
+        },
+        "MYSQL_HARDWARE_DATABASE_URL": {
+          "type": "string"
+        },
+        "AUTH0_DOMAIN": {
+          "type": "string"
+        },
+        "AUTH0_CLIENT_SECRET": {
+          "type": "string"
+        }
+  }
+}
