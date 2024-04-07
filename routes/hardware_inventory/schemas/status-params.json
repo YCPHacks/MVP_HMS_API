@@ -1,0 +1,14 @@
+{
+    "type": "object",
+    "$id": "schema:hardware:status:params",
+    "required": ["id", "status"],
+    "additionalProperties": false,
+    "properties": {
+        "id": {
+            "type": "integer"
+        },
+        "status": {
+            "type": "integer"
+        }
+    }
+}

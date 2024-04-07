@@ -1,4 +1,5 @@
 'use strict'
+
 module.exports = async function hardwareRoutes(fastify, options) {
 
     const hardware = await fastify.mysql.getConnection()
@@ -10,25 +11,25 @@ module.exports = async function hardwareRoutes(fastify, options) {
         for pagination
         - name allows us to filter for specific hardware items
         */
-        const {pageSize, pageNumber, name} = request.query
+        const {name, pageNumber, limit} = request.query
         //calculation for  the skip value
-        const skip = (pageNumber - 1) * pageSize
+        const skip = (pageNumber - 1) * limit
         //limit value for the number of items to be retrieved on each page
-        const limit = pageSize
+        //const limit = pageSize
         //name of stored procedure to be called
         const statement = "CALL list_hardware_items(?,?,?);"
        
         //try-catch block to handle the database operation
         try {
             //execute the stored procedure
-            const [rows] = await hardware.query(statement, [skip, limit, name])
+            const [rows] = await hardware.query(statement, [name, skip, limit])
             //get the data from the rows
             const data = rows[0]
             //get the length of the data
             const length = data.length
             if (length > 0) {
                 //send the data and the total number of items if items are found
-                reply.code(200).send({hardware_data: data, itemCount: length})
+                reply.code(200).send({data: data, itemCount: length})
             } else {
                 //send an error message if no items are found
                 reply.code(404).send({error: 'No hardware items found'})
@@ -47,6 +48,12 @@ module.exports = async function hardwareRoutes(fastify, options) {
         url: '/',
         //preValidation hook to authenticate the user before accessing the route
         preValidation: fastify.authenticate,
+        schema: {
+            querystring: fastify.getSchema('schema:hardware:list:query'),
+            response: {
+                200: fastify.getSchema('schema:hardware:list:response')
+            }
+        },
         handler: listHardware
     })
 
@@ -66,7 +73,7 @@ module.exports = async function hardwareRoutes(fastify, options) {
             //execute the stored procedure
             await hardware.execute(statement, [name, label, category, description])
             //send a success message if the item is created successfully
-            reply.code(201).send({message: 'Hardware item: ' + name + ' created successfully'})
+            reply.code(201).send({name})
         } catch (error) {
             //send an error message if an error occurs (Internal Server Error)
             reply.code(500).send({error: 'Error creating hardware item: ' + name})
@@ -79,6 +86,12 @@ module.exports = async function hardwareRoutes(fastify, options) {
     fastify.route({
         method: 'POST',
         url: '/',
+        schema: {
+            body: fastify.getSchema('schema:hardware:create:body'),
+            response: {
+                201: fastify.getSchema('schema:hardware:create:response')
+            }
+        },
         handler: createHardware
     })
 
@@ -94,10 +107,11 @@ module.exports = async function hardwareRoutes(fastify, options) {
             const [rows] = await hardware.query(statement, [id])
             //get the data from the rows
             const data = rows[0]
+            const length = data.length
 
             if (length > 0) {
                 //send the data if an item is found
-                reply.code(200).send(data)
+                reply.send({data: data, itemCount: length})
             } else {
                 //send an error message if no item is found
                 reply.code(404).send({error: 'No hardware item found'})
@@ -114,6 +128,12 @@ module.exports = async function hardwareRoutes(fastify, options) {
     fastify.route({
         method: 'GET',
         url: '/:id',
+        schema: {
+            params: fastify.getSchema('schema:hardware:read:params'),
+            response: {
+                200: fastify.getSchema('schema:hardware:list:response')
+            }
+        },
         handler: readHardware
     })
 
@@ -125,7 +145,7 @@ module.exports = async function hardwareRoutes(fastify, options) {
         const { name, label, category, description } = request.body
 
         //name of stored procedure to be called
-        const statement = 'CALL update_todo_item(?,?,?,?,?);'
+        const statement = 'CALL update_hardware_item(?,?,?,?,?);'
     
         try {
           //execute the stored procedure
@@ -144,6 +164,10 @@ module.exports = async function hardwareRoutes(fastify, options) {
     fastify.route({
         method: 'PUT',
         url: '/:id',
+        schema: {
+            params: fastify.getSchema('schema:hardware:read:params'),
+            body: fastify.getSchema('schema:hardware:update:body')
+        },
         handler: updateHardware
     })
 
@@ -170,6 +194,9 @@ module.exports = async function hardwareRoutes(fastify, options) {
     fastify.route({
         method: 'DELETE',
         url: '/:id',
+        schema: {
+            params: fastify.getSchema('schema:hardware:read:params'),
+        },
         handler: deleteHardware
     })
 
@@ -198,6 +225,9 @@ module.exports = async function hardwareRoutes(fastify, options) {
       fastify.route({
         method: 'POST',
         url: '/:id/:status',
+        schema: {
+            params: fastify.getSchema('schema:hardware:status:params'),
+        },
         handler: changeStatus
       })
 }

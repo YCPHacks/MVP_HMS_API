@@ -1,0 +1,16 @@
+{
+    "type": "object",
+    "$id": "schema:hardware:list:query",
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "limit": {
+        "$ref": "schema:limit#/properties/limit"
+      },
+      "pageNumber": {
+        "$ref": "schema:pageNumber#/properties/pageNumber"
+      }
+    }
+  }

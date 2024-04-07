@@ -1,0 +1,16 @@
+{
+    "type": "object",
+    "$id": "schema:hardware:list:response",
+    "additionalProperties": false,
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "$ref": "schema:hardware"
+        }
+      },
+      "itemCount": {
+        "type": "integer"
+      }
+    }
+  }
