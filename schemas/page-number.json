@@ -1,0 +1,12 @@
+{
+    "type": "object",
+    "$id": "schema:pageNumber",
+    "additionalProperties": false,
+    "properties": {
+      "pageNumber": {
+        "type": "integer",
+        "default": "1",
+        "minimum": 1
+      }
+    }
+  }

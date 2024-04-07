@@ -1,0 +1,19 @@
+{
+    "type": "object",
+    "$id": "schema:hardware:update:body",
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "label": {
+        "type": "string"
+      },
+      "category": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      }
+    }
+  }

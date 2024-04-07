@@ -1,0 +1,11 @@
+{
+    "type": "object",
+    "$id": "schema:hardware:create:response",
+    "required": ["name"],
+    "additionalProperties": false,
+    "properties": {
+        "name": {
+            "type": "string"
+        }
+    }
+}

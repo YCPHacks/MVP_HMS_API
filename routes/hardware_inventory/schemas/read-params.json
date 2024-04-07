@@ -1,0 +1,11 @@
+{
+    "type": "object",
+    "$id": "schema:hardware:read:params",
+    "required": ["id"],
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "integer"
+      }
+    }
+  }
