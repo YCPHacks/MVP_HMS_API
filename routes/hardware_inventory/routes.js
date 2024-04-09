@@ -29,7 +29,7 @@ module.exports = async function hardwareRoutes(fastify, options) {
             const length = data.length
             if (length > 0) {
                 //send the data and the total number of items if items are found
-                reply.code(200).send({data: data, itemCount: length})
+                reply.code(200).send({itemCount: length, data: data})
             } else {
                 //send an error message if no items are found
                 reply.code(404).send({error: 'No hardware items found'})
