@@ -23,7 +23,8 @@
     "fastify": "^4.24.3",
     "fastify-cli": "^5.8.0",
     "fastify-plugin": "^4.5.1",
-    "fastify-auth0-verify": "^1.2.1"
+    "fastify-auth0-verify": "^1.2.1",
+    "@mysql/xdevapi": "^8.0.35"
   },
   "devDependencies": {
     "tap": "^18.5.2"
