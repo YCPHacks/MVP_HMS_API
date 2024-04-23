@@ -2,44 +2,23 @@
 
 module.exports = async function hardwareRoutes(fastify, options) {
 
-    const hardware = await fastify.mysql.getConnection()
-
     async function listHardware(request, reply) {
-        /*
-        - get the query parameters for the HTTP request
-        - pageSize and pageNumber help calculate the skip and limit values
-        for pagination
-        - name allows us to filter for specific hardware items
-        */
-        const {name, pageNumber, limit} = request.query
-        //calculation for  the skip value
-        const skip = (pageNumber - 1) * limit
-        //limit value for the number of items to be retrieved on each page
-        //const limit = pageSize
-        //name of stored procedure to be called
-        const statement = "CALL list_hardware_items(?,?,?);"
-       
-        //try-catch block to handle the database operation
+
+        const {name, pageNumber, limit} = request.query; 
+        const skip = (pageNumber - 1) * limit; 
+
+        let session;
         try {
-            //execute the stored procedure
-            const [rows] = await hardware.query(statement, [name, skip, limit])
-            //get the data from the rows
-            const data = rows[0]
-            //get the length of the data
-            const length = data.length
-            if (length > 0) {
-                //send the data and the total number of items if items are found
-                reply.code(200).send({itemCount: length, data: data})
-            } else {
-                //send an error message if no items are found
-                reply.code(404).send({error: 'No hardware items found'})
-            }
-        } catch (error) {
-            //send an error message if an error occurs (Internal Server Error)
-            reply.code(500).send({error: 'Error retrieving hardware items'})
+            session = await fastify.mysqlx.getSession();
+            const listSQL = 'CALL list_hardware_items(?, ?, ?);';
+            const result = await session.sql(listSQL).bind([name, skip, limit]).execute();
+            const hardwareItems = await result.fetchOne();
+        return hardwareItems[0];
+        } catch (err) {
+            console.error(err);
+            reply.status(500).send({ error: 'Failed to retrieve hardware items', details: err.message });
         } finally {
-            //release the connection
-            hardware.release()
+            if (session) await session.close();
         }
     }
 
@@ -48,186 +27,115 @@ module.exports = async function hardwareRoutes(fastify, options) {
         url: '/',
         //preValidation hook to authenticate the user before accessing the route
         preValidation: fastify.authenticate,
-        schema: {
-            querystring: fastify.getSchema('schema:hardware:list:query'),
-            response: {
-                200: fastify.getSchema('schema:hardware:list:response')
-            }
-        },
         handler: listHardware
     })
-
+    
     async function createHardware(request, reply){
-        /*
-        - name: name of the hardware item
-        - label: label of the hardware item format (XX-Number)
-        - category: category of the hardware item
-        - description: description of the hardware item
-        */
-        const {name, label, category, description} = request.body
+        const {name, category, description, link, quantity} = request.body;
 
-        //name of stored procedure to be called
-        const statement = 'CALL create_hardware_item(?,?,?,?);';
-        
+        let session;
+
         try {
-            //execute the stored procedure
-            await hardware.execute(statement, [name, label, category, description])
-            //send a success message if the item is created successfully
-            reply.code(201).send({name})
+            session = await fastify.mysqlx.getSession()
+            //await session.startTransaction();
+            const createSQL = `CALL create_many_hardware_items(?, ?, ?, ?, ?);`;
+            await session.sql(createSQL).bind([name, category, description, link, quantity]).execute();
+            //await session.commit();
+            reply.code(201).send({ message: 'New hardware item added successfully.' });
         } catch (error) {
-            //send an error message if an error occurs (Internal Server Error)
-            reply.code(500).send({error: 'Error creating hardware item: ' + name})
+            //await session.rollback();
+            request.log.error(error);
+            reply.code(500).send({ error: 'Failed to add new hardware item and details', details: error.message });
         } finally {
-            //release the connection
-            hardware.release()
+            if(session) {
+                await session.close();
+            }
         }
     }
 
     fastify.route({
         method: 'POST',
         url: '/',
-        schema: {
-            body: fastify.getSchema('schema:hardware:create:body'),
-            response: {
-                201: fastify.getSchema('schema:hardware:create:response')
-            }
-        },
         handler: createHardware
     })
 
     async function readHardware(request, reply) {
-        //get the id for the HTTP request from the URL
-        const id = request.params.id
+        const name = request.params.name
+        console.log(name);
 
-        //name of stored procedure to be called
-        const statement = 'CALL read_hardware_item(?);'
-
+        let session;
         try {
-            //execute the stored procedure
-            const [rows] = await hardware.query(statement, [id])
-            //get the data from the rows
-            const data = rows[0]
-            const length = data.length
-
-            if (length > 0) {
-                //send the data if an item is found
-                reply.send({data: data, itemCount: length})
-            } else {
-                //send an error message if no item is found
-                reply.code(404).send({error: 'No hardware item found'})
-            }
+            session = await fastify.mysqlx.getSession();
+            const readSQL = `CALL read_combined_hardware_details(?, @result);`
+            await session.sql(readSQL).bind(name).execute();
+            const blah = await session.sql('SELECT @result').execute();
+            const hardwareItem = JSON.parse(await blah.fetchOne());
+            return hardwareItem;
         } catch (error) {
-            //send an error message if an error occurs (Internal Server Error)
-            reply.code(500).send({error: 'Error retrieving hardware item'})
+            //await session.rollback();
+            request.log.error(error);
+            reply.code(500).send({ error: 'Failed to add new hardware item and details', details: error.message });
         } finally {
-            //release the connection
-            hardware.release()
+            if(session) {
+                await session.close();
+            }
         }
     }
 
     fastify.route({
         method: 'GET',
-        url: '/:id',
-        schema: {
-            params: fastify.getSchema('schema:hardware:read:params'),
-            response: {
-                200: fastify.getSchema('schema:hardware:list:response')
-            }
-        },
+        url: '/:name',
         handler: readHardware
     })
 
     async function updateHardware (request, reply) {
-        //get the id for the HTTP request from the URL
-        const id = request.params.id
+        const sku = request.params.sku
 
-        //get the data for the HTTP request
-        const { name, label, category, description } = request.body
-
-        //name of stored procedure to be called
-        const statement = 'CALL update_hardware_item(?,?,?,?,?);'
+        const { name, category, description, link } = request.body
     
+        let session;
         try {
-          //execute the stored procedure
-          await hardware.execute(statement, [id, name, label, category, description])
-          //send a success message if the item is updated successfully
-          reply.code(204).send({message: 'Hardware item updated successfully'})
+            session = await fastify.mysqlx.getSession();
+            const updateSQL = `CALL update_hardware_item(?, ?, ?, ?, ?);`
+            await session.sql(updateSQL).bind([sku, name, category, description, link]).execute();
+
+            reply.code(200).send({ message: 'Hardware item updated successfully' });
         } catch (error) {
-          //send an error message if an error occurs (Internal Server Error)
-          reply.code(500).send({error: error.message})
+            reply.code(500).send({ error: 'Failed to update hardware item', details: error.message });
         } finally {
-          //release the connection
-          hardware.release()
+            if (session) {
+                await session.close();
+            }
         }
     }
 
     fastify.route({
         method: 'PUT',
-        url: '/:id',
-        schema: {
-            params: fastify.getSchema('schema:hardware:read:params'),
-            body: fastify.getSchema('schema:hardware:update:body')
-        },
+        url: '/:sku',
         handler: updateHardware
     })
 
     async function deleteHardware(request, reply) {
-        //get the id for the HTTP request from the URL
-        const id = request.params.id
+        const sku = request.params.sku
 
-        //name of stored procedure to be called
-        const statement = 'CALL delete_hardware_item(?);'
-
+        let session;
         try {
-            //execute the stored procedure
-            await hardware.execute(statement, [id])
-            reply.code(204).send()
+            session = await fastify.mysqlx.getSession();
+            const deleteSQL = `CALL delete_hardware_item(?);`
+            await session.sql(deleteSQL).bind(sku).execute();
+            reply.code(204).send();
         } catch (error) {
-            //send an error message if an error occurs (Internal Server Error)
-            reply.code(500).send({error: 'Error deleting hardware item'})
+            reply.status(500).send({ error: 'Failed to delete hardware item', details: error.message });
         } finally {
-            //release the connection
-            hardware.release()
+            if (session) {
+                await session.close();
+            }
         }
     }
 
     fastify.route({
         method: 'DELETE',
-        url: '/:id',
-        schema: {
-            params: fastify.getSchema('schema:hardware:read:params'),
-        },
+        url: '/:sku',
         handler: deleteHardware
     })
-
-    async function changeStatus (request, reply) {
-        //get the id and status for the HTTP request from the URL
-        const id = request.params.id
-        const status = request.params.status
-
-        //name of stored procedure to be called
-        const statement = 'CALL change_hardware_item_status(?,?);'
-    
-        try {
-          //execute the stored procedure
-          await hardware.execute(statement, [id, status])
-          reply.code(204).send()
-        } catch (error) {
-          //send an error message if an error occurs (Internal Server Error)
-          reply.code(500).send({message: "Error changing hardware item status"})
-        } finally {
-          //release the connection
-          todos.release()
-        }
-      
-      }
-    
-      fastify.route({
-        method: 'POST',
-        url: '/:id/:status',
-        schema: {
-            params: fastify.getSchema('schema:hardware:status:params'),
-        },
-        handler: changeStatus
-      })
 }
